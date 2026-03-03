@@ -18,17 +18,21 @@ Wir nutzen **Poetry** für die Verwaltung unserer Pakete und der virtuellen Umge
 ```bash
 git clone [https://gitlab.informatik.uni-bonn.de/projektgruppe2026/pg_text_level_gnn.git](https://gitlab.informatik.uni-bonn.de/projektgruppe2026/pg_text_level_gnn.git)
 cd pg_text_level_gnn
+```
+
 Erstelle die virtuelle Umgebung und lade alle Pakete in exakt denselben Versionen herunter (dies nutzt automatisch die .lock Datei):
-
-
+```bash
 poetry install
-3. Umgebung aktivieren (Wichtig!)
-Damit dein Terminal (und VS Code) die installierten Pakete wie PyTorch findet, musst du in die virtuelle Umgebung wechseln:
+```
 
+### 3. Umgebung aktivieren (Wichtig!)
+Damit dein Terminal (und VS Code) die installierten Pakete wie PyTorch findet, musst du in die virtuelle Umgebung wechseln:
+```bash
 poetry shell
+```
 (Alternativ: Wähle in VS Code unten rechts den Python Interpreter aus und klicke auf den Pfad mit .venv im Namen).
 
-🌿 Unser Git Workflow
+## 🌿 Unser Git Workflow
 Um Chaos und überschriebenen Code zu vermeiden, nutzen wir den Feature Branch Workflow.
 
 Die goldene Regel: Es wird NIEMALS direkt auf dem main-Branch programmiert! Der main-Branch enthält immer nur funktionierenden, getesteten Code.
@@ -42,32 +46,38 @@ bugfix/ für Fehlerbehebungen (z. B. bugfix/dataloader-crash)
 
 docs/ für Dokumentation (z. B. docs/readme-setup)
 
-Git feature branch workflow diagram, KI-generiert
-Shutterstock
-Entdecken
-Der tägliche Ablauf
+### Der tägliche Ablauf
 Neuesten Stand holen:
-
+```bash
 git checkout main
 git pull origin main
+```
+
 Eigenen Branch erstellen:
-
+```bash
 git checkout -b feature/dein-feature-name
-Programmieren & Committen:
+```
 
+Programmieren & Committen:
+```bash
 git add .
 git commit -m "Beschreibe kurz, was du gemacht hast"
-Auf GitLab hochladen:
+```
 
+Auf GitLab hochladen:
+```bash
 git push -u origin feature/dein-feature-name
 Merge Request: Gehe in GitLab, erstelle einen "Merge Request" für deinen Branch und lass ihn von einem anderen Gruppenmitglied in den main mergen.
+```
 
-🛠️ Nützliche Befehle (Dev Tools)
+## 🛠️ Nützliche Befehle (Dev Tools)
 Wir haben Tools installiert, damit unser Code einheitlich bleibt. Bitte führe diese regelmäßig aus:
 
 Code formatieren (Black): 
+```bash
 poetry run black .
-
+```
 Code auf Fehler prüfen (Ruff):
+```bash
 poetry run ruff check .
-
+```

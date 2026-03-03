@@ -1,0 +1,16 @@
+# Virtuelle Umgebung (ganz wichtig!)
+.venv/
+
+# Python Cache-Dateien
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Eure rohen und verarbeiteten GNN-Daten (gehören nicht auf GitLab!)
+data/
+
+# Jupyter Notebook Checkpoints
+.ipynb_checkpoints/
+
+# VS Code Einstellungen
+.vscode/

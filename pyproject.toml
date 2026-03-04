@@ -25,3 +25,6 @@ dev = [
 [tool.ruff.lint]
 # E = Standard-Fehler, F = Logik-Fehler, N = Naming Conventions (PEP 8)
 select = ["E", "F", "N"]
+
+[tool.poetry]
+package-mode = false

@@ -13,8 +13,8 @@ def read_labels(file_path: str | Path) -> Dict[str, int]:
         labels = [line.strip() for line in f.read().splitlines() if line.strip()]
         
     # Erstellt ein Dictionary: {'LabelA': 0, 'LabelB': 1, ...}
-    return {label: i                    #Format des Dictionarys: {Label l: ID i}
+    return {label: i                    #Format des Dictionarys: {Label label: ID i}
             for i, label                #für jedes Label l und seine Index i in der Liste labels
             in enumerate(labels)}   #enumerate() gibt für jedes Element in der Liste 
                                     #labels ein Tupel (Index, Element) zurück 
-                                    #und speichert es in i, l
+                                    #und speichert es in i, label

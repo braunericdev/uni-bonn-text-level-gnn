@@ -28,7 +28,7 @@ poetry install
 ### 3. Umgebung aktivieren (Wichtig!)
 Damit dein Terminal (und VS Code) die installierten Pakete wie PyTorch findet, musst du in die virtuelle Umgebung wechseln:
 ```bash
-poetry shell
+poetry env activate
 ```
 (Alternativ: Wähle in VS Code unten rechts den Python Interpreter aus und klicke auf den Pfad mit .venv im Namen).
 

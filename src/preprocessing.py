@@ -11,13 +11,14 @@ def read_labels(file_path: str | Path) -> Dict[str, int]:
         # line.strip() = false => Zeile enthält nur Leerzeichen, wird ignoriert
         # splitlines()
         labels = [line.strip() for line in f.read().splitlines() if line.strip()]
-        
-    # Erstellt ein Dictionary: {'LabelA': 0, 'LabelB': 1, ...}
-    return {label: i                    #Format des Dictionarys: {Label label: ID i}
-            for i, label                #für jedes Label l und seine Index i in der Liste labels
-            in enumerate(labels)}   #enumerate() gibt für jedes Element in der Liste 
-                                    #labels ein Tupel (Index, Element) zurück 
-                                    #und speichert es in i, label
+        # Erstellt ein Dictionary: {'LabelA': 0, 'LabelB': 1, ...}
+        label2idx = {   
+                        label: i                    #Format des Dictionarys: {Label label: ID i}
+                        for i, label                #für jedes Label l und seine Index i in der Liste labels
+                        in enumerate(labels)        #enumerate() gibt für jedes Element in der Liste 
+                    }                               #labels ein Tupel (Index, Element) zurück 
+                                                    #und speichert es in i, label
+    return label2idx
 
 def read_vocab(file_path: str | Path) -> Dict[str, int]:
     """
@@ -25,6 +26,11 @@ def read_vocab(file_path: str | Path) -> Dict[str, int]:
     """
     with open(file_path, "r", encoding="utf-8") as f: #speichert return von open(...) in f
         words = [line.strip() for line in f.read().splitlines() if line.strip()] 
-        word2idx = {word: i + 1  for i, word in enumerate(words)} #Ertellt Dictionary ab Index 1
+        word2idx = {                            #Ertellt Dictionary ab Index 1
+                        word: i + 1  
+                        for i, word 
+                        in enumerate(words)
+                    } 
         word2idx['<pad>'] = 0   #das wort <pad> (=Platzhalter) wird in index 0 gespeichert 
     return word2idx #'<pad> ist Konvention, da 'platzhalter' oder 'pad' (z.B. 'iPad') in Texten vorkommen könnten 
+

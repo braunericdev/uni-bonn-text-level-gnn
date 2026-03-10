@@ -16,10 +16,9 @@ def read_labels(file_path: str | Path) -> Dict[str, int]:
         label2idx = {
             # Format des Dictionarys: {Label label: ID i}
             label: i
-            # für jedes Label l und seine Index i in der Liste labels
+            # i und label werden Elementen aus der labels zugewiesen
             for i, label
-            # enumerate() gibt für jedes Element in der Liste ein Tupel (Index, Element) zurück
-            # und speichert es in i, label
+            # enumerate() gibt für jedes Element in labels ein Tupel (Index, Element) zurück
             in enumerate(labels)
         }
     return label2idx

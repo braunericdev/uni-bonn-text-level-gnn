@@ -38,10 +38,9 @@ def read_vocab(file_path: str | Path) -> Dict[str, int]:
         word2idx["<pad>"] = 0
     return word2idx
 
+
 def read_corpus(
-    file_path: str | Path, 
-    label2idx: Dict[str, int], 
-    word2idx: Dict[str, int]
+    file_path: str | Path, label2idx: Dict[str, int], word2idx: Dict[str, int]
 ) -> Tuple[List[List[int]], List[int]]:
     """
     Liest den Textkorpus ein und codiert sowohl die Wörter als auch die Labels.
@@ -49,12 +48,23 @@ def read_corpus(
     """
     with open(file_path, "r", encoding="utf-8") as f:
         # splitlines() verhindert leere Strings durch den letzten Zeilenumbruch
-        content = [line.split('\t') for line in f.read().splitlines() if line.strip()]
+        content = [line.split("\t") for line in f.read().splitlines() if line.strip()]
 
     # data: Jedes Wort im Text (x[1]) wird zu einer ID
     data = [[encode_word(word, word2idx) for word in x[1].split()] for x in content]
-    
+
     # gt (Ground Truth): Das Label (x[0]) wird zu einer ID
     gt = [label2idx[x[0]] for x in content]
 
     return data, gt
+
+
+def encode_word(word: str, word2idx: Dict[str, int]) -> int:
+    """Ordnet einem Wort die Id zu"""
+    # sucht einfach optimistisch das word im Dict
+    try:
+        idx = word2idx[word]
+    # falls Word nicht gefunden, gib ID für das Wort 'UNK' zurück
+    except KeyError:
+        idx = word2idx["UNK", 0]  # 0, falls auch UNK nicht enthalten
+    return idx

@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict
+from typing import Dict, List, Tuple
 
 
 def read_labels(file_path: str | Path) -> Dict[str, int]:

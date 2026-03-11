@@ -37,6 +37,10 @@ def read_vocab(file_path: str | Path) -> Dict[str, int]:
         # das wort <pad> (=Platzhalter) wird in index 0 gespeichert
         #'<pad> ist Konvention, da 'platzhalter' oder 'pad' (z.B. 'iPad') in Texten vorkommen könnten
         word2idx["<pad>"] = 0
+        #Falls Unk nicht in Vokabular enhalten gewesen, hier manuell hinzugefügt.
+        #Wenn Worte, später nicht im Dict gefunden werden, werden sie als UNK gehandhabt
+        if "UNK" not in word2idx:
+            word2idx["UNK"] = len(word2idx)
     return word2idx
 
 
@@ -67,7 +71,7 @@ def encode_word(word: str, word2idx: Dict[str, int]) -> int:
         idx = word2idx[word]
     # falls Word nicht gefunden, gib ID für das Wort 'UNK' zurück
     except KeyError:
-        idx = word2idx["UNK", 0]  # 0, falls auch UNK nicht enthalten
+        idx = word2idx.get["UNK", 0]  # 0, falls auch UNK nicht enthalten
     return idx
 
 

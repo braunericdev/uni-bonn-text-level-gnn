@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Any
 
 
 def read_labels(file_path: str | Path) -> Dict[str, int]:
@@ -70,14 +70,14 @@ def encode_word(word: str, word2idx: Dict[str, int]) -> int:
     return idx
 
 def get_embedding(
-    args: any, 
+    args: Any, 
     word2idx: Dict[str, int]
     ) -> np.ndarray | None: 
     """ Finde Wörter in den Glove-Embeddings"""
     #suche in Liste 'args' das Argumnet pretrained und wenn dieses false ist ist...
     if not args.pretrained:
         print("\t GLoVe Word-Embeddings gefunden, aber werden nicht verwendet!")
-        return none
+        return None
 
     # 1. Moderner Dateipfad mit f-String und Pathlib
     # (Setzt voraus, dass args.path_data z.B. "data/" ist und args.d_pretrained z.B. 100)
@@ -89,8 +89,8 @@ def get_embedding(
         -np.sqrt(0.06), 
         np.sqrt(0.06), 
         (
-            vocab_size,         #jedes Worts eine Spalte, 
-            args.d_pretrained   #jede Spalte eine Dim
+            vocab_size,         #jedes zeile ein Wort, 
+            args.d_pretrained   #jede Spalte eine Dim des Emebeddings
         )
     )
     emb_counts = 0

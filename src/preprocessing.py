@@ -68,3 +68,50 @@ def encode_word(word: str, word2idx: Dict[str, int]) -> int:
     except KeyError:
         idx = word2idx["UNK", 0]  # 0, falls auch UNK nicht enthalten
     return idx
+
+def get_embedding(
+    args: any, 
+    word2idx: Dict[str, int]
+    ) -> np.ndarray | None: 
+    """ Finde Wörter in den Glove-Embeddings"""
+    #suche in Liste 'args' das Argumnet pretrained und wenn dieses false ist ist...
+    if not args.pretrained:
+        print("\t GLoVe Word-Embeddings gefunden, aber werden nicht verwendet!")
+        return none
+
+    # 1. Moderner Dateipfad mit f-String und Pathlib
+    # (Setzt voraus, dass args.path_data z.B. "data/" ist und args.d_pretrained z.B. 100)
+    file_path = Path(f"{args.path_data}glove.6B.{args.d_pretrained}d.txt")
+
+    # 2. Matrix initialisieren (np.random.uniform)
+    vocab_size = len(word2idx) #Anzahl Zeilen
+    embedding_matrix = np.random.uniform(
+        -np.sqrt(0.06), 
+        np.sqrt(0.06), 
+        (
+            vocab_size,         #jedes Worts eine Spalte, 
+            args.d_pretrained   #jede Spalte eine Dim
+        )
+    )
+    emb_counts = 0
+
+    # 3. Datei SICHER öffnen (mit 'with', damit sie danach wieder geschlossen wird)
+    with open(file_path, "r", encoding="utf-8") as f:
+        for line in f:
+            #entfernt leerzeichen und teilt zeile in d teille (word, word embedding...)
+            parts = line.strip().split()
+            #speichert den ersten teil der zeile als Wort
+            word = parts[0]
+            
+            # 4. Wenn die Länge stimmt UND wir das Wort in unserem Datensatz brauchen
+            if len(parts) == (args.d_pretrained + 1) and word in word2idx:
+                # Vektor extrahieren und an der richtigen Stelle (anhand id des worts) in der Matrix speichern
+                vector = np.array([float(x) for x in parts[1:]])
+                embedding_matrix[word2idx[word]] = vector
+                emb_counts += 1
+
+    # 5. Das <pad> Token auf 0 setzen (Index 0)
+    embedding_matrix[0] = np.zeros(args.d_pretrained)
+
+    print(f"\tPretrained GloVe found: {emb_counts}")
+    return embedding_matrix

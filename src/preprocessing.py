@@ -1,3 +1,4 @@
+import numpy as np
 from pathlib import Path
 from typing import Dict, List, Tuple, Any
 
@@ -69,12 +70,10 @@ def encode_word(word: str, word2idx: Dict[str, int]) -> int:
         idx = word2idx["UNK", 0]  # 0, falls auch UNK nicht enthalten
     return idx
 
-def get_embedding(
-    args: Any, 
-    word2idx: Dict[str, int]
-    ) -> np.ndarray | None: 
-    """ Finde Wörter in den Glove-Embeddings"""
-    #suche in Liste 'args' das Argumnet pretrained und wenn dieses false ist ist...
+
+def get_embedding(args: Any, word2idx: Dict[str, int]) -> np.ndarray | None:
+    """Finde Wörter in den Glove-Embeddings"""
+    # suche in Liste 'args' das Argumnet pretrained und wenn dieses false ist ist...
     if not args.pretrained:
         print("\t GLoVe Word-Embeddings gefunden, aber werden nicht verwendet!")
         return None
@@ -84,25 +83,25 @@ def get_embedding(
     file_path = Path(f"{args.path_data}glove.6B.{args.d_pretrained}d.txt")
 
     # 2. Matrix initialisieren (np.random.uniform)
-    vocab_size = len(word2idx) #Anzahl Zeilen
+    vocab_size = len(word2idx)  # Anzahl Zeilen
     embedding_matrix = np.random.uniform(
-        -np.sqrt(0.06), 
-        np.sqrt(0.06), 
+        -np.sqrt(0.06),
+        np.sqrt(0.06),
         (
-            vocab_size,         #jedes zeile ein Wort, 
-            args.d_pretrained   #jede Spalte eine Dim des Emebeddings
-        )
+            vocab_size,  # jedes zeile ein Wort,
+            args.d_pretrained,  # jede Spalte eine Dim des Emebeddings
+        ),
     )
     emb_counts = 0
 
     # 3. Datei SICHER öffnen (mit 'with', damit sie danach wieder geschlossen wird)
     with open(file_path, "r", encoding="utf-8") as f:
         for line in f:
-            #entfernt leerzeichen und teilt zeile in d teille (word, word embedding...)
+            # entfernt leerzeichen und teilt zeile in d teille (word, word embedding...)
             parts = line.strip().split()
-            #speichert den ersten teil der zeile als Wort
+            # speichert den ersten teil der zeile als Wort
             word = parts[0]
-            
+
             # 4. Wenn die Länge stimmt UND wir das Wort in unserem Datensatz brauchen
             if len(parts) == (args.d_pretrained + 1) and word in word2idx:
                 # Vektor extrahieren und an der richtigen Stelle (anhand id des worts) in der Matrix speichern

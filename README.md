@@ -10,7 +10,7 @@ Dieses Repository enthält den Code für unsere Projektgruppe: Klassifikation vo
 Wir nutzen **Poetry** für die Verwaltung unserer Pakete und der virtuellen Umgebung. Bitte installiere für dieses Projekt keine Pakete global mit `pip`!
 
 ### 1. Voraussetzungen
-* Python 3.10 (oder neuer) ist installiert.
+* Python 3.10 (aber älter 3.13) ist installiert.
 * Poetry ist installiert (`pip install poetry`).
 
 ### 2. Projekt klonen & einrichten

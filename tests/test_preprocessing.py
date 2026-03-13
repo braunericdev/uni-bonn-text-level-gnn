@@ -19,9 +19,6 @@ def test_read_labels(tmp_path):
     assert result == expected
     assert len(result) == 3
 
-# --- Falls noch nicht importiert, oben ergänzen: ---
-# from src.preprocessing import read_labels, read_vocab, encode_word, read_corpus, get_embedding
-
 def test_read_vocab(tmp_path):
     # 1. Fake-Datei erstellen
     vocab_file = tmp_path / "vocab.txt"

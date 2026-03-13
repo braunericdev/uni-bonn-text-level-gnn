@@ -1,6 +1,6 @@
 # PG Text-Level GNN
 
-## 🚀 Über dieses Projekt (Informationen für Recruiter & Tech-Leads)
+## 🚀 Über dieses Projekt
 
 Dieses Repository implementiert ein Text-Level Graph Neural Network (GNN) zur Dokumentenklassifikation (Natural Language Processing). Das primäre Ziel dieses Projekts ist es, nicht nur ein komplexes ML-Modell zu bauen, sondern von der ersten Zeile an einen starken Fokus auf Software Engineering Best Practices im Machine-Learning-Kontext zu demonstrieren.
 

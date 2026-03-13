@@ -71,7 +71,7 @@ def encode_word(word: str, word2idx: Dict[str, int]) -> int:
         idx = word2idx[word]
     # falls Word nicht gefunden, gib ID für das Wort 'UNK' zurück
     except KeyError:
-        idx = word2idx.get["UNK", 0]  # 0, falls auch UNK nicht enthalten
+        idx = word2idx.get("UNK", 0)  # 0, falls auch UNK nicht enthalten
     return idx
 
 

@@ -1,8 +1,7 @@
 import pytest
 import numpy as np
 from pathlib import Path
-# Hier musst du den Import anpassen, je nachdem wie dein Ordner heißt
-# Wir nehmen an, deine Datei liegt in src/preprocessing.py
+
 from src.preprocessing import read_labels, read_vocab, encode_word
 
 def test_read_labels(tmp_path):

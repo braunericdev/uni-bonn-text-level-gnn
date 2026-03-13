@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 from pathlib import Path
 
-from src.preprocessing import read_labels, read_vocab, encode_word, read_coprus, get_embedding
+from src.preprocessing import read_labels, read_vocab, encode_word, read_corpus, get_embedding
 
 def test_read_labels(tmp_path):
     # 1. Vorbereitung: Wir erstellen eine Fake-Datei im Speicher

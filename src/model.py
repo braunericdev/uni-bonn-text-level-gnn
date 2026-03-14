@@ -105,12 +105,12 @@ class TextLevelGNN(nn.Module):
         """
         Forward-Pass des Modells.
         - Eingabe: 
-            x:(B, L) Wort-IDs des eigentlichen Textes (0 = padding)
-            nb_x:(B, L, K) Nachbar-Knoten für jeden Token
-            w_edge:(B, L, K) Edge-IDs zwischen Token und seinen Nachbarn
+            x:[B, L] Wort-IDs des eigentlichen Textes (0 = padding)
+            nb_x:[B, L, K] Nachbar-Knoten für jeden Token
+            w_edge:[B, L, K] Edge-IDs zwischen Token und seinen Nachbarn
         
         - Ausgabe:
-            Scores (B, n_class) Klassifikationsscores für jede Klasse
+            Scores [B, n_class] Klassifikationsscores für jede Klasse
 
             B = Anzahl Texte im Batch
             L = Maximale Tokenlänge
@@ -122,9 +122,9 @@ class TextLevelGNN(nn.Module):
         B, L = x.shape
         # Masken erzeugen
         # True für echte Tokens, False für Padding (ID 0)
-        mask_nodes = (x != 0).unsqueeze(-1)  # (B, L, 1)
+        mask_nodes = (x != 0).unsqueeze(-1)  # [B, L, 1]
         # True für echte Nachbarn, False für Padding
-        mask_nb = (nb_x != 0).unsqueeze(-1)  # (B, L, K, 1)
+        mask_nb = (nb_x != 0).unsqueeze(-1)  # [B, L, K, 1]
 
         # Embeddings laden
         # ------------------------------------------------------------
@@ -169,7 +169,7 @@ class TextLevelGNN(nn.Module):
         h_node = (1.0 - eta) * msg_nb + eta * emb_self # [B, L, d_model]  
         
         # Pooling über Tokens: ein einziger Vektor für den ganzen Text
-        pooled = (h_node * mask_nodes).sum(dim = 1).clamp_min(1)  # (B, D)  .clamp_min(1) setzt alle Werte, die kleiner als 1 sind, auf 1
+        pooled = (h_node * mask_nodes).sum(dim = 1).clamp_min(1)  # [B, D]  .clamp_min(1) setzt alle Werte, die kleiner als 1 sind, auf 1
         # Ruft das vorher definierte Dropout-Layer auf
         pooled = self.dropout(pooled)
 

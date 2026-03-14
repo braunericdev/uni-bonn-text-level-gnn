@@ -63,14 +63,6 @@ class TextLevelGNN(nn.Module):
             # Keine lernbare Operation
             with torch.no_grad():
                 self.embedding.weight[0].fill_(0.0)   
-        """
-        Ohne no_grad() würde PyTorch versuchen:
-
-        diese Operation im Autograd Graph zu speichern
-
-        später Gradienten zu berechnen
-        Ein Batch ist eine Gruppe von Trainingsbeispielen, die gleichzeitig durch das Modell laufen.
-        """
 
         # Optionale Normalisierung    
         # Wenn aktiviert: LayerNorm auf Embeddings anwenden

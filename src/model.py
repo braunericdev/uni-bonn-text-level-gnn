@@ -169,7 +169,7 @@ class TextLevelGNN(nn.Module):
         h_node = (1.0 - eta) * msg_nb + eta * emb_self # [B, L, d_model]  
         
         # Pooling über Tokens: ein einziger Vektor für den ganzen Text
-        pooled = (h_node * mask_nodes).sum(dim = 1).clamp_min(1)  # [B, D]  .clamp_min(1) setzt alle Werte, die kleiner als 1 sind, auf 1
+        pooled = (h_node * mask_nodes).sum(dim = 1).clamp_min(1)  # [B, d_model]  .clamp_min(1) setzt alle Werte, die kleiner als 1 sind, auf 1
         # Ruft das vorher definierte Dropout-Layer auf
         pooled = self.dropout(pooled)
 

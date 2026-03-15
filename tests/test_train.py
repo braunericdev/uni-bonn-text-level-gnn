@@ -19,6 +19,7 @@ class TinyClassifier(nn.Module):
         super().__init__()
 
         # Zwei lernbare Scores für eine 2-Klassen-Klassifikation
+        # Logits sind die rohen Ausgabewerte eines Modells vor der Softmax-Umwandlung.
         self.logits = nn.Parameter(torch.tensor([2.0, 0.0], dtype=torch.float32))
 
     def forward(self, x, nb_x, w_edge):

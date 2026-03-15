@@ -7,9 +7,9 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from dataset import get_dataloader
-from model import TextLevelGNN
-from train import train, evaluate
+from src.dataset import get_dataloader
+from src.model import TextLevelGNN
+from src.train import train, evaluate
 
 
 def main():
@@ -25,10 +25,10 @@ def main():
     - Bestes Modell merken
     - Am Ende auf Testdaten auswerten
     """
-    setup_logging()
     args = parse_args()
-    args.device = resolve_device(args.device)
     prepare_paths(args)
+    setup_logging(args.path_log)
+    args.device = resolve_device(args.device)
     set_seed(args.seed)
     train_model(args)
 
@@ -79,12 +79,21 @@ def parse_args() -> argparse.Namespace:
 
 
 # Logging konfigurieren
-def setup_logging():
-    # Richtet die Konsolenausgabe ein
-    logging.basicConfig(
-        level=logging.INFO,   # Normale Informationsmeldungen werden angezeigt
-        format="%(message)s"  # Nur die Nachricht selbst anzeigen
-    )
+def setup_logging(log_path):
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    logger.handlers.clear()
+
+    formatter = logging.Formatter("%(message)s")
+
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(formatter)
+
+    file_handler = logging.FileHandler(log_path, encoding="utf-8")
+    file_handler.setFormatter(formatter)
+
+    logger.addHandler(console_handler)
+    logger.addHandler(file_handler)
 
 
 # Seeds setzen für Reproduzierbarkeit

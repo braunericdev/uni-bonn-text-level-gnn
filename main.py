@@ -14,6 +14,7 @@ from src.preprocessing import read_labels, read_vocab, get_embedding, read_corpu
 from src.dataset import build_dataloader
 from src.model import TextLevelGNN
 from src.train import train, evaluate
+from src.graph_builder import compute_valid_edge_ids
 
 
 def main():
@@ -73,6 +74,13 @@ def prepare_data(args):
 
     tr_data, tr_gt = read_corpus(args.path_data + args.dataset + '/train-stemmed.txt', label2idx, word2idx)
     print('\n\tTotal training samples:', len(tr_data))
+
+    tr_data, tr_gt = read_corpus(args.path_data + args.dataset + '/train-stemmed.txt', label2idx, word2idx)
+    print('\n\tTotal training samples:', len(tr_data))
+    
+    # NEU: 1. Valide Kanten für das "Public Edge" Konzept berechnen
+    print('\tBerechne valide Kanten (Public Edge Strategie)...')
+    valid_edge_ids = compute_valid_edge_ids(tr_data, args.n_degree, args.n_word, k=2)
 
     val_data, val_gt = read_corpus(args.path_data + args.dataset + '/valid-stemmed.txt', label2idx, word2idx)
     print('\tTotal validation samples:', len(val_data))

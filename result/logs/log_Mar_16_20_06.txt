@@ -1,0 +1,45 @@
+
+[Training gestartet]
+
+[Epoch 1]
+ Train | loss 0.7908 | acc 0.8868 | 61.03s
+ Valid | loss 0.3416 | acc 0.9324 | patience 0/5
+
+[Epoch 2]
+ Train | loss 0.0487 | acc 0.9931 | 58.76s
+ Valid | loss 0.3618 | acc 0.9415 | patience 0/5
+
+[Epoch 3]
+ Train | loss 0.0197 | acc 0.9970 | 66.62s
+ Valid | loss 0.3934 | acc 0.9433 | patience 0/5
+
+[Epoch 4]
+ Train | loss 0.0097 | acc 0.9974 | 55.42s
+ Valid | loss 0.3708 | acc 0.9470 | patience 0/5
+
+[Epoch 5]
+ Train | loss 0.0154 | acc 0.9974 | 59.50s
+ Valid | loss 0.4012 | acc 0.9452 | patience 1/5
+
+[Epoch 6]
+ Train | loss 0.0062 | acc 0.9986 | 84.83s
+ Valid | loss 0.3819 | acc 0.9452 | patience 2/5
+
+[Epoch 7]
+ Train | loss 0.0035 | acc 0.9990 | 64.71s
+ Valid | loss 0.3775 | acc 0.9452 | patience 3/5
+
+[Epoch 8]
+ Train | loss 0.0030 | acc 0.9994 | 77.18s
+ Valid | loss 0.3764 | acc 0.9452 | patience 4/5
+
+[Epoch 9]
+ Train | loss 0.0029 | acc 0.9994 | 68.54s
+ Valid | loss 0.3768 | acc 0.9470 | patience 5/5
+
+Early Stopping ausgelöst
+Bestes Modell: Epoch 4 | loss 0.3708 | acc 0.9470
+
+[Testphase]
+
+ Test | loss 0.2579 | acc 0.9635

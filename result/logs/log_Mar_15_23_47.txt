@@ -1,0 +1,18 @@
+
+[Training gestartet]
+
+[Epoch 1]
+ Train | loss 0.7908 | acc 0.8868 | 60.23s
+ Valid | loss 0.3416 | acc 0.9324 | patience 0/5
+
+[Epoch 2]
+ Train | loss 0.0532 | acc 0.9931 | 56.18s
+ Valid | loss 0.3810 | acc 0.9452 | patience 0/5
+
+[Epoch 3]
+ Train | loss 0.0155 | acc 0.9978 | 59.01s
+ Valid | loss 0.3476 | acc 0.9543 | patience 0/5
+
+[Testphase]
+
+ Test | loss 0.2539 | acc 0.9625

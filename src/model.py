@@ -1,3 +1,6 @@
+import torch
+import torch.nn as nn
+
 
 class TextLevelGNN(nn.Module):  
     """
@@ -47,7 +50,7 @@ class TextLevelGNN(nn.Module):
             # Embedding-Layer aus vortrainierten Embeddings erzeugen
             # freeze=False: die Embeddings bleiben trainierbar.
             # padding_idx=0: Index 0 ist das Padding-Token
-            self.embedding = nn.Embedding.from_pretrained(embed_pretrained, freeze = False, padding_inx = 0)
+            self.embedding = nn.Embedding.from_pretrained(embed_pretrained, freeze = False, padding_idx = 0)
 
         else:
             # Falls keine vortrainierten Embeddings vorhanden sind:

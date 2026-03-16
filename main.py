@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from src.dataset import get_dataloader
+from src.dataset import build_dataloader
 from src.model import TextLevelGNN
 from src.train import train, evaluate
 
@@ -39,7 +39,7 @@ def parse_args() -> argparse.Namespace:
 
     # Experiment setting
     # --dataset: Command Line Interface Argument
-    parser.add_argument('--dataset', type=str, default='ohsumed', choices=['mr', 'ohsumed', 'r8', 'r52'],
+    parser.add_argument('--dataset', type=str, default='ohsumed', choices=['mr', 'ohsumed', 'r8', 'r52', 'ag_news'],
                         help='Name des Datensatzes')
     # --mean_reduction nicht angegeben, dann ist der Wert False
     # --mean_reduction angegeben, dann ist der Wert True
@@ -153,7 +153,7 @@ def prepare_paths(args):
 # Modell und Optimizer erstellen
 def build_training(args):
     # Datensätze und Embeddings laden mit multiple assignment
-    train_loader, valid_loader, test_loader, word2idx, embeds_pretrained = get_dataloader(args)
+    train_loader, valid_loader, test_loader, word2idx, embeds_pretrained = build_dataloader(args)
     model = TextLevelGNN(args, embeds_pretrained).to(args.device) # verschiebt das Modell auf device
     # Der Optimizer aktualisiert die Modellgewichte während des Trainings.
     optimizer = torch.optim.Adam(

@@ -2,11 +2,15 @@ import argparse
 import logging
 import time
 import copy
+import codecs
+import pickle
+import zipfile
 from pathlib import Path
 
 import numpy as np
 import torch
 
+from src.preprocessing import read_labels, read_vocab, get_embedding, read_corpus, encode_word
 from src.dataset import build_dataloader
 from src.model import TextLevelGNN
 from src.train import train, evaluate
@@ -25,12 +29,75 @@ def main():
     - Bestes Modell merken
     - Am Ende auf Testdaten auswerten
     """
+
     args = parse_args()
+    set_seed(args.seed)
+    prepare_data(args)
     prepare_paths(args)
     setup_logging(args.path_log)
     args.device = resolve_device(args.device)
-    set_seed(args.seed)
+    
     train_model(args)
+
+def prepare_data(args):
+    """
+    parser = argparse.ArgumentParser(description='TextLevelGNN-DGL data packaging project')
+
+    # experiment setting
+    parser.add_argument('--dataset', type=str, default='ag_news', choices=['r8', 'r52', 'ohsumed', "ag_news"], help='used dataset')
+    parser.add_argument('--pretrained', type=bool, default=True, help='use pretrained GloVe embeddings')
+    parser.add_argument('--d_pretrained', type=int, default=300, help='pretrained embedding dimension')
+    parser.add_argument('--seed', type=int, default=1111, help='random seed')
+
+    # path settings
+    parser.add_argument('--path_data', type=str, default='./data/', help='path of the data corpus')
+
+    args = parser.parse_args()
+    np.random.seed(args.seed)
+    """
+    if args.dataset not in ['r8', 'r52', 'ohsumed', "ag_news"]:
+        raise ValueError('Data {data} not supported, currently supports "r8", "r52" and "ohsumed".')
+
+    # read files
+    print('\n[info] Dataset:', args.dataset)
+    time_start = time.time()
+
+    label2idx = read_labels(args.path_data + args.dataset + '/label.txt')
+    word2idx = read_vocab(args.path_data + args.dataset + '/vocab-5.txt')
+    args.n_class = len(label2idx)
+    args.n_word = len(word2idx)
+    print('\tTotal classes:', args.n_class)
+    print('\tTotal words:', args.n_word)
+
+    embeds = get_embedding(args, word2idx)
+
+    tr_data, tr_gt = read_corpus(args.path_data + args.dataset + '/train-stemmed.txt', label2idx, word2idx)
+    print('\n\tTotal training samples:', len(tr_data))
+
+    val_data, val_gt = read_corpus(args.path_data + args.dataset + '/valid-stemmed.txt', label2idx, word2idx)
+    print('\tTotal validation samples:', len(val_data))
+
+    te_data, te_gt = read_corpus(args.path_data + args.dataset + '/test-stemmed.txt', label2idx, word2idx)
+    print('\tTotal testing samples:', len(te_data))
+
+    # save processed data
+    mappings = {
+        'label2idx': label2idx,
+        'word2idx': word2idx,
+        'tr_data': tr_data,
+        'tr_gt': tr_gt,
+        'val_data': val_data,
+        'val_gt': val_gt,
+        'te_data': te_data,
+        'te_gt': te_gt,
+        'embeds': embeds,
+        'args': args
+    }
+
+    with open(args.path_data + args.dataset + '.pkl', 'wb') as f:
+        pickle.dump(mappings, f)
+
+    print('\n[info] Time consumed: {:.2f}s'.format(time.time() - time_start))
 
 
 def parse_args() -> argparse.Namespace:

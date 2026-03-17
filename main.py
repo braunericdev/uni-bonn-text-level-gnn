@@ -33,37 +33,13 @@ def main():
     args = parse_args()
     set_seed(args.seed)
     args.device = resolve_device(args.device)
-    
-    if args.do_preprocess:
-        print("\n=== PHASE 1: PREPROCESSING ===")
-        prepare_data(args)
-        
-    if args.do_train:
-        print("\n=== PHASE 2: TRAINING ===")
-        prepare_paths(args)
-        setup_logging(args.path_log)
-        train_model(args)
-        
-    if args.do_test:
-        print("\n=== PHASE 3: TESTING ===")
-        test_model(args)
+    train_model(args)
 
 def prepare_data(args):
-    """
-    parser = argparse.ArgumentParser(description='TextLevelGNN-DGL data packaging project')
 
-    # experiment setting
-    parser.add_argument('--dataset', type=str, default='ag_news', choices=['r8', 'r52', 'ohsumed', "ag_news"], help='used dataset')
-    parser.add_argument('--pretrained', type=bool, default=True, help='use pretrained GloVe embeddings')
-    parser.add_argument('--d_pretrained', type=int, default=300, help='pretrained embedding dimension')
-    parser.add_argument('--seed', type=int, default=1111, help='random seed')
+    if args.dataset not in ['r8', 'r52', 'ohsumed', "bbc_converted"]:
+        raise ValueError('Data {data} not supported, currently supports "r8", "r52", "ohsumed" and "bbc".')
 
-    # path settings
-    parser.add_argument('--path_data', type=str, default='./data/', help='path of the data corpus')
-
-    args = parser.parse_args()
-    np.random.seed(args.seed)
-    """
     # read files
     print('\n[info] Dataset:', args.dataset)
     time_start = time.time()
@@ -128,7 +104,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument('--do_test', action='store_true', help='Testet ein fertiges Modell')
     parser.add_argument('--load_model_path', type=str, default='', help='Pfad zur .pt Datei für den Test')
     # --dataset: Command Line Interface Argument
-    parser.add_argument('--dataset', type=str, default='ohsumed', help='Name des Datensatzes')    # --mean_reduction nicht angegeben, dann ist der Wert False
+    parser.add_argument('--dataset', type=str, default='ohsumed', choices=['mr', 'ohsumed', 'r8', 'r52', 'bbc_converted'],
+                        help='Name des Datensatzes')
+    # --mean_reduction nicht angegeben, dann ist der Wert False
     # --mean_reduction angegeben, dann ist der Wert True
     parser.add_argument('--mean_reduction', action='store_true', help='Ablation: Mean statt Max Aggregation verwenden')
     parser.add_argument('--pretrained', action='store_true', help='Ablation: Vortrainierte GloVe Embeddings verwenden')
@@ -239,27 +217,10 @@ def prepare_paths(args):
 
 # Modell und Optimizer erstellen
 def build_training(args):
-    # 1. Daten laden
+    # Datensätze und Embeddings laden mit multiple assignment
     train_loader, valid_loader, test_loader, word2idx, embeds_pretrained = build_dataloaders(args)
-    
-    # 2. Wir suchen die absolut höchste ID, die jemals in den Daten vorkommt
-    # Wir schauen in die Rohdaten der Datasets
-    all_max_ids = [
-        train_loader.dataset.valid_edge_ids.max(),
-        valid_loader.dataset.valid_edge_ids.max(),
-        test_loader.dataset.valid_edge_ids.max()
-    ]
-    
-    # Die absolute Grenze für das Embedding Layer
-    args.n_edge = int(max(all_max_ids) + 1)
-    args.n_word = len(word2idx)
-    args.n_class = len(np.unique(train_loader.dataset.labels))
-
-    print(f"   [FINAL ATTEMPT] Modell-Kapazität n_edge: {args.n_edge}")
-
-    model = TextLevelGNN(args, embeds_pretrained).to(args.device)
-    
-    # Optimizer und Scheduler (bleiben wie sie sind)
+    model = TextLevelGNN(args, embeds_pretrained).to(args.device) # verschiebt das Modell auf device
+    # Der Optimizer aktualisiert die Modellgewichte während des Trainings.
     optimizer = torch.optim.Adam(
         filter(lambda p: p.requires_grad, model.parameters()),
         lr=args.lr,

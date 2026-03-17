@@ -8,6 +8,7 @@ __pycache__/
 
 # Eure rohen und verarbeiteten GNN-Daten (gehören nicht auf GitLab!)
 result/
+ag_news_converted/
 # Jupyter Notebook Checkpoints
 .ipynb_checkpoints/
 

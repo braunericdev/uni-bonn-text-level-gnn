@@ -101,9 +101,17 @@ def build_dataloaders(args):
     vocab_dict = data_dict['word2idx']
     args_prep = data_dict['args']
 
-    # Dimensionen abgleichen
-    if args_prep.d_pretrained != args.d_model:
-        raise ValueError("Mismatch zwischen Preprocessing Embedding-Dimension und Modell-Dimension.")
+    embeddings_tensor = None
+    if data_dict['embeds'] is not None:
+        embeddings_tensor = torch.tensor(data_dict['embeds'], dtype=torch.float32)
+
+        # Dimensionen abgleichen: [vocab_size, embedding_dim]
+        if embeddings_tensor.dim() != 2:
+            raise ValueError("Preprocessing-Embeddings muessen 2D sein.")
+        if embeddings_tensor.size(1) != args.d_model:
+            raise ValueError("Mismatch zwischen Preprocessing-Embedding-Dimension und Modell-Dimension.")
+    elif bool(args.pretrained):
+        raise ValueError("args.pretrained=True, aber im Datensatz sind keine Pretrained-Embeddings gespeichert.")
         
     args.n_class = args_prep.n_class
     args.n_word = len(vocab_dict) 
@@ -132,7 +140,5 @@ def build_dataloaders(args):
         collate_fn=prepare_batch, 
         shuffle=False
     )
-
-    embeddings_tensor = torch.tensor(data_dict['embeds'], dtype=torch.float32)
 
     return loader_train, loader_val, loader_test, vocab_dict, embeddings_tensor

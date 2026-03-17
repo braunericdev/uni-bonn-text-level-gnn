@@ -11,7 +11,7 @@ import numpy as np
 import torch
 
 from src.preprocessing import read_labels, read_vocab, get_embedding, read_corpus, encode_word
-from src.dataset import build_dataloader
+from src.dataset import build_dataloaders
 from src.model import TextLevelGNN
 from src.train import train, evaluate
 
@@ -36,27 +36,12 @@ def main():
     prepare_paths(args)
     setup_logging(args.path_log)
     args.device = resolve_device(args.device)
-    
     train_model(args)
 
 def prepare_data(args):
-    """
-    parser = argparse.ArgumentParser(description='TextLevelGNN-DGL data packaging project')
 
-    # experiment setting
-    parser.add_argument('--dataset', type=str, default='ag_news', choices=['r8', 'r52', 'ohsumed', "ag_news"], help='used dataset')
-    parser.add_argument('--pretrained', type=bool, default=True, help='use pretrained GloVe embeddings')
-    parser.add_argument('--d_pretrained', type=int, default=300, help='pretrained embedding dimension')
-    parser.add_argument('--seed', type=int, default=1111, help='random seed')
-
-    # path settings
-    parser.add_argument('--path_data', type=str, default='./data/', help='path of the data corpus')
-
-    args = parser.parse_args()
-    np.random.seed(args.seed)
-    """
-    if args.dataset not in ['r8', 'r52', 'ohsumed', "ag_news"]:
-        raise ValueError('Data {data} not supported, currently supports "r8", "r52" and "ohsumed".')
+    if args.dataset not in ['r8', 'r52', 'ohsumed', "bbc_converted"]:
+        raise ValueError('Data {data} not supported, currently supports "r8", "r52", "ohsumed" and "bbc".')
 
     # read files
     print('\n[info] Dataset:', args.dataset)
@@ -106,7 +91,7 @@ def parse_args() -> argparse.Namespace:
 
     # Experiment setting
     # --dataset: Command Line Interface Argument
-    parser.add_argument('--dataset', type=str, default='ohsumed', choices=['mr', 'ohsumed', 'r8', 'r52', 'ag_news'],
+    parser.add_argument('--dataset', type=str, default='ohsumed', choices=['mr', 'ohsumed', 'r8', 'r52', 'bbc_converted'],
                         help='Name des Datensatzes')
     # --mean_reduction nicht angegeben, dann ist der Wert False
     # --mean_reduction angegeben, dann ist der Wert True
@@ -220,7 +205,7 @@ def prepare_paths(args):
 # Modell und Optimizer erstellen
 def build_training(args):
     # Datensätze und Embeddings laden mit multiple assignment
-    train_loader, valid_loader, test_loader, word2idx, embeds_pretrained = build_dataloader(args)
+    train_loader, valid_loader, test_loader, word2idx, embeds_pretrained = build_dataloaders(args)
     model = TextLevelGNN(args, embeds_pretrained).to(args.device) # verschiebt das Modell auf device
     # Der Optimizer aktualisiert die Modellgewichte während des Trainings.
     optimizer = torch.optim.Adam(

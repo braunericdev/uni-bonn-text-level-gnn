@@ -7,7 +7,7 @@ __pycache__/
 .pytest_cache/
 
 # Eure rohen und verarbeiteten GNN-Daten (gehören nicht auf GitLab!)
-
+result/
 # Jupyter Notebook Checkpoints
 .ipynb_checkpoints/
 

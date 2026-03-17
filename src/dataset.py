@@ -1,10 +1,11 @@
 import pickle
 import numpy as np
 import torch
+from src.graph_builder import build_graph_with_public_edges
 from torch.utils.data import Dataset, DataLoader
 
 class TextGraphDataset(Dataset):
-    def __init__(self, config, text_data, labels):
+    def __init__(self, config, text_data, labels, valid_edge_ids):
         """
         Initialisierung des Datasets und Speichern der Parameter.
         """
@@ -18,6 +19,7 @@ class TextGraphDataset(Dataset):
         # n_degree ist das "Sliding Window"
         self.window_size = config.n_degree
         self.max_seq_len = config.max_len_text
+        self.valid_edge_ids = valid_edge_ids # <--- NEU
 
     def __len__(self):
         # Sagt PyTorch, wie viele Texte insgesamt da sind
@@ -27,51 +29,16 @@ class TextGraphDataset(Dataset):
         """
         Extrahiert einen Datenpunkt und konstruiert den Text-Graphen.
         """
-        # Holt den aktuellen Text
         tokens = self.texts[index]
-        seq_length = len(tokens)
         
-        all_neighbors = []
-
-        # 1. Lokale Nachbarschaften berechnen (Sliding Window)
-        # Wir gehen durch jedes einzelne Wort im Text...
-        for pos in range(seq_length):
-            left_neighbors = []
-            right_neighbors = []
-            # ...und schauen für jedes Wort 'window_size' Schritte nach links und rechts
-            for step in range(1, self.window_size + 1):
-                # Linker Kontext
-                left_idx = pos - step
-                if left_idx >= 0:
-                    left_neighbors.append(tokens[left_idx])
-                else:
-                    left_neighbors.append(0) # Padding
-                    
-                # Rechter Kontext
-                right_idx = pos + step
-                if right_idx < seq_length:
-                    right_neighbors.append(tokens[right_idx])
-                else:
-                    right_neighbors.append(0) # Padding
-
-            # Nachbarn der aktuellen Position zusammenführen
-            all_neighbors.append(left_neighbors + right_neighbors)
-
-        # 2. Padding auf max_seq_len für einheitliche Batch-Dimensionen
-        actual_len = min(seq_length, self.max_seq_len)
-        
-        node_features = np.zeros(self.max_seq_len, dtype=np.int64)
-        node_features[:actual_len] = np.array(tokens)[:actual_len]
-
-        neighbor_features = np.zeros((self.max_seq_len, self.window_size * 2), dtype=np.int64)
-        neighbor_features[:actual_len] = np.array(all_neighbors)[:actual_len]
-
-        # 3. Konstruktion der Edge-IDs basierend auf Vokabular-Indizes
-        edge_offsets = ((node_features - 1) * self.vocab_size).reshape(-1, 1)
-        edges = edge_offsets + neighbor_features
-        
-        # Ignoriere Kanten für Padding-Tokens
-        edges[node_features == 0] = 0
+        # Aufruf unserer ausgelagerten, schnellen Profi-Funktion!
+        node_features, neighbor_features, edges = build_graph_with_public_edges(
+            text_tokens=tokens,
+            n_degree=self.window_size,
+            max_len_text=self.max_seq_len,
+            n_word=self.vocab_size,
+            valid_edge_ids=self.valid_edge_ids
+        )
 
         return node_features, neighbor_features, edges, self.labels[index]
 
@@ -100,6 +67,9 @@ def build_dataloaders(args):
 
     vocab_dict = data_dict['word2idx']
     args_prep = data_dict['args']
+    
+    # NEU: Wir holen uns die validen Kanten aus dem gepickelten Dictionary
+    valid_edges = data_dict['valid_edge_ids'] 
 
     embeddings_tensor = None
     if data_dict['embeds'] is not None:
@@ -116,9 +86,9 @@ def build_dataloaders(args):
     args.n_class = args_prep.n_class
     args.n_word = len(vocab_dict) 
 
-    # Dataloader Instanzen erstellen
+    # Dataloader Instanzen erstellen (JETZT MIT valid_edges als 4. Parameter!)
     loader_train = DataLoader(
-        TextGraphDataset(args, data_dict['tr_data'], data_dict['tr_gt']), 
+        TextGraphDataset(args, data_dict['tr_data'], data_dict['tr_gt'], valid_edges), 
         batch_size=args.batch_size,
         num_workers=args.num_worker, 
         collate_fn=prepare_batch, 
@@ -126,7 +96,7 @@ def build_dataloaders(args):
     )
 
     loader_val = DataLoader(
-        TextGraphDataset(args, data_dict['val_data'], data_dict['val_gt']), 
+        TextGraphDataset(args, data_dict['val_data'], data_dict['val_gt'], valid_edges), 
         batch_size=args.batch_size,
         num_workers=args.num_worker, 
         collate_fn=prepare_batch, 
@@ -134,7 +104,7 @@ def build_dataloaders(args):
     )
 
     loader_test = DataLoader(
-        TextGraphDataset(args, data_dict['te_data'], data_dict['te_gt']), 
+        TextGraphDataset(args, data_dict['te_data'], data_dict['te_gt'], valid_edges), 
         batch_size=args.batch_size,
         num_workers=args.num_worker, 
         collate_fn=prepare_batch, 

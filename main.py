@@ -14,8 +14,9 @@ from src.preprocessing import read_labels, read_vocab, get_embedding, read_corpu
 from src.dataset import build_dataloaders
 from src.model import TextLevelGNN
 from src.train import train, evaluate
+from src.graph_builder import compute_valid_edge_ids
 
-
+   
 def main():
     """
     Pipeline:
@@ -29,12 +30,8 @@ def main():
     - Bestes Modell merken
     - Am Ende auf Testdaten auswerten
     """
-
     args = parse_args()
     set_seed(args.seed)
-    prepare_data(args)
-    prepare_paths(args)
-    setup_logging(args.path_log)
     args.device = resolve_device(args.device)
     train_model(args)
 
@@ -55,9 +52,19 @@ def prepare_data(args):
     print('\tTotal words:', args.n_word)
 
     embeds = get_embedding(args, word2idx)
+    
+    # Falls get_embedding None zurückgibt (weil z.B. GloVe nicht gefunden wurde 
+    # oder das Flag fehlte), erstellen wir zufällige Embeddings:
+    if embeds is None:
+        print("\t⚠️ Keine vortrainierten Embeddings gefunden/gewählt. Erstelle zufällige Initialisierung...")
+        embeds = np.random.normal(size=(args.n_word, args.d_model))
 
     tr_data, tr_gt = read_corpus(args.path_data + args.dataset + '/train-stemmed.txt', label2idx, word2idx)
     print('\n\tTotal training samples:', len(tr_data))
+    
+    # NEU: 1. Valide Kanten für das "Public Edge" Konzept berechnen
+    print('\tBerechne valide Kanten (Public Edge Strategie)...')
+    valid_edge_ids = compute_valid_edge_ids(tr_data, args.n_degree, args.n_word, k=2)
 
     val_data, val_gt = read_corpus(args.path_data + args.dataset + '/valid-stemmed.txt', label2idx, word2idx)
     print('\tTotal validation samples:', len(val_data))
@@ -76,6 +83,7 @@ def prepare_data(args):
         'te_data': te_data,
         'te_gt': te_gt,
         'embeds': embeds,
+        'valid_edge_ids': valid_edge_ids,  # <--- NEU!
         'args': args
     }
 
@@ -90,6 +98,11 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description='Training eines TextLevelGNN Modells zur Textklassifikation')
 
     # Experiment setting
+    # MLOps Pipeline Schalter
+    parser.add_argument('--do_preprocess', action='store_true', help='Baut die .pkl Datei neu')
+    parser.add_argument('--do_train', action='store_true', help='Führt das Training aus')
+    parser.add_argument('--do_test', action='store_true', help='Testet ein fertiges Modell')
+    parser.add_argument('--load_model_path', type=str, default='', help='Pfad zur .pt Datei für den Test')
     # --dataset: Command Line Interface Argument
     parser.add_argument('--dataset', type=str, default='ohsumed', choices=['mr', 'ohsumed', 'r8', 'r52', 'bbc_converted'],
                         help='Name des Datensatzes')
@@ -209,20 +222,17 @@ def build_training(args):
     model = TextLevelGNN(args, embeds_pretrained).to(args.device) # verschiebt das Modell auf device
     # Der Optimizer aktualisiert die Modellgewichte während des Trainings.
     optimizer = torch.optim.Adam(
-        # nur Parameter trainieren, bei denen requires_grad = True
         filter(lambda p: p.requires_grad, model.parameters()),
-        lr=args.lr,  # learning rate: teuert wie stark Gewichte angepasst werden
-        weight_decay=1e-4   # Hilft gegen Overfitting
+        lr=args.lr,
+        weight_decay=1e-4
     )
-    # Verändert die Learning Rate während des Trainings
     scheduler = torch.optim.lr_scheduler.StepLR(
-        optimizer,  # Der Scheduler steuert die Learning Rate des Optimizers
-        step_size=args.lr_step,  # Alle N Epochen wird die Learning Rate veränder
-        gamma=args.lr_gamma  # Faktor zur Reduktion
+        optimizer,
+        step_size=args.lr_step,
+        gamma=args.lr_gamma
     )
 
     return model, optimizer, scheduler, train_loader, valid_loader, test_loader
-
 
 # Training
 def train_model(args):
@@ -290,7 +300,6 @@ def train_model(args):
             )
             break  # for-Schleife beenden
 
-
     # Testphase
     logging.info("\n[Testphase]")
     # Lädt die gespeicherten Parameter zurück ins Modell
@@ -309,6 +318,21 @@ def train_model(args):
         torch.save(model, args.path_model)
         logging.info("Modell gespeichert")
 
+def test_model(args):
+    """Lädt ein trainiertes Modell und testet es isoliert."""
+    if not args.load_model_path:
+        raise ValueError("Für --do_test musst du auch --load_model_path angeben!")
+
+    # Nur Test-Dataloader wird wirklich benötigt
+    _, _, test_loader, _, embeds_pretrained = build_dataloaders(args)
+    
+    model = TextLevelGNN(args, embeds_pretrained).to(args.device)
+    
+    print(f"\n[Lade Modellgewichte von: {args.load_model_path}]")
+    model.load_state_dict(torch.load(args.load_model_path, map_location=args.device, weights_only=True))
+    
+    loss_test, acc_test = evaluate(args, model, test_loader)
+    print(f"\n🎉 Test-Ergebnis | Loss: {loss_test:.4f} | Accuracy: {acc_test:.4f}")
 
 if __name__ == "__main__":
     main()

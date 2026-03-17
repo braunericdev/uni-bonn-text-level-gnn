@@ -1,10 +1,12 @@
 import pickle
 import numpy as np
 import torch
+from src.graph_builder import build_graph_with_public_edges
 from torch.utils.data import Dataset, DataLoader
 from src.graph_builder import build_graph_with_public_edges
 
 class TextGraphDataset(Dataset):
+    def __init__(self, config, text_data, labels, valid_edge_ids):
     def __init__(self, config, text_data, labels, valid_edge_ids):
         """
         Initialisierung des Datasets und Speichern der Parameter.
@@ -116,6 +118,9 @@ def build_dataloaders(args):
 
     vocab_dict = data_dict['word2idx']
     args_prep = data_dict['args']
+    
+    # NEU: Wir holen uns die validen Kanten aus dem gepickelten Dictionary
+    valid_edges = data_dict['valid_edge_ids'] 
 
     embeddings_tensor = None
     if data_dict['embeds'] is not None:
@@ -132,7 +137,7 @@ def build_dataloaders(args):
     args.n_class = args_prep.n_class
     args.n_word = len(vocab_dict) 
 
-    # Dataloader Instanzen erstellen
+    # Dataloader Instanzen erstellen (JETZT MIT valid_edges als 4. Parameter!)
     loader_train = DataLoader(
         TextGraphDataset(args, data_dict['tr_data'], data_dict['tr_gt'], data_dict['valid_edge_ids']), 
         batch_size=args.batch_size,

@@ -72,12 +72,9 @@ class TextLevelGNN(nn.Module):
         # Kanten- und Knotengewichte   
         # ------------------------------------------------------------   
         # Anzahl möglicher Edge-IDs
-        # +1 padding id(0 wieder für Padding/"keine Kante" reserviert).
-        n_edge_ids = (self.n_node - 1) * self.n_node + 1    
-        
-        # Für jede Kante wird ein skalare Gewicht gelernt
-        # Erzeugt ein Embedding-Layer mit: n_edge_ids Einträgen, Ausgabegröße 1
-        self.weight_edge = nn.Embedding(n_edge_ids, 1, padding_idx = 0)
+        # Wir nehmen die Anzahl der Kanten direkt aus den args, die wir beim Preprocessing gespeichert haben
+        self.n_edge = int(args.n_edge) 
+        self.weight_edge = nn.Embedding(self.n_edge, 1, padding_idx = 0)
 
         # Mischfaktor
         self.eta_node = nn.Embedding(self.n_node, 1, padding_idx = 0)

@@ -72,7 +72,7 @@ def build_dataloaders(args):
     valid_edges = data_dict['valid_edge_ids'] 
 
     # Dimensionen abgleichen
-    if args_prep.d_pretrained != args.d_model:
+    if args_prep.d_model != args.d_model:
         raise ValueError("Mismatch zwischen Preprocessing Embedding-Dimension und Modell-Dimension.")
         
     args.n_class = args_prep.n_class

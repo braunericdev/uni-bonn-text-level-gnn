@@ -84,7 +84,7 @@ def get_embedding(args: Any, word2idx: Dict[str, int]) -> np.ndarray | None:
 
     # 1. Moderner Dateipfad mit f-String und Pathlib
     # (Setzt voraus, dass args.path_data z.B. "data/" ist und args.d_pretrained z.B. 100)
-    file_path = Path(f"{args.path_data}glove.6B.{args.d_pretrained}d.txt")
+    file_path = Path(f"{args.path_data}glove.6B.{args.d_model}d.txt")
 
     # 2. Matrix initialisieren (np.random.uniform)
     vocab_size = len(word2idx)  # Anzahl Zeilen
@@ -93,7 +93,7 @@ def get_embedding(args: Any, word2idx: Dict[str, int]) -> np.ndarray | None:
         np.sqrt(0.06),
         (
             vocab_size,  # jedes zeile ein Wort,
-            args.d_pretrained,  # jede Spalte eine Dim des Emebeddings
+            args.d_model,  # jede Spalte eine Dim des Emebeddings
         ),
     )
     emb_counts = 0
@@ -107,14 +107,14 @@ def get_embedding(args: Any, word2idx: Dict[str, int]) -> np.ndarray | None:
             word = parts[0]
 
             # 4. Wenn die Länge stimmt UND wir das Wort in unserem Datensatz brauchen
-            if len(parts) == (args.d_pretrained + 1) and word in word2idx:
+            if len(parts) == (args.d_model + 1) and word in word2idx:
                 # Vektor extrahieren und an der richtigen Stelle (anhand id des worts) in der Matrix speichern
                 vector = np.array([float(x) for x in parts[1:]])
                 embedding_matrix[word2idx[word]] = vector
                 emb_counts += 1
 
     # 5. Das <pad> Token auf 0 setzen (Index 0)
-    embedding_matrix[0] = np.zeros(args.d_pretrained)
+    embedding_matrix[0] = np.zeros(args.d_model)
 
     print(f"\tPretrained GloVe found: {emb_counts}")
     return embedding_matrix

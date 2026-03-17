@@ -82,9 +82,17 @@ def get_embedding(args: Any, word2idx: Dict[str, int]) -> np.ndarray | None:
         print("\t GLoVe Word-Embeddings gefunden, aber werden nicht verwendet!")
         return None
 
-    # 1. Moderner Dateipfad mit f-String und Pathlib
-    # (Setzt voraus, dass args.path_data z.B. "data/" ist und args.d_pretrained z.B. 100)
-    file_path = Path(f"{args.path_data}glove.6B.{args.d_pretrained}d.txt")
+    if getattr(args, "path_embedding", None):
+        file_path = Path(args.path_embedding)
+    else:
+        # Fallback auf das bisherige Standardschema im data-Ordner
+        file_path = Path(args.path_data) / f"glove.6B.{args.d_pretrained}d.txt"
+
+    if not file_path.exists():
+        raise FileNotFoundError(
+            f"Embedding-Datei nicht gefunden: {file_path}. "
+            "Setze --path_embedding auf die .txt-Datei deiner GloVe-Vektoren."
+        )
 
     # 2. Matrix initialisieren (np.random.uniform)
     vocab_size = len(word2idx)  # Anzahl Zeilen

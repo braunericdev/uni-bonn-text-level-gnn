@@ -13,7 +13,6 @@ from src.dataset import build_dataloaders
 from src.model import TextLevelGNN
 from src.train import train, evaluate
 from src.graph_builder import compute_valid_edge_ids
-from src.graph_builder import compute_valid_edge_ids
 
 def main():
     """
@@ -28,8 +27,12 @@ def main():
     - Bestes Modell merken
     - Am Ende auf Testdaten auswerten
     """
+
     args = parse_args()
     set_seed(args.seed)
+    prepare_data(args)
+    prepare_paths(args)
+    setup_logging(args.path_log)
     args.device = resolve_device(args.device)
     train_model(args)
 
@@ -50,20 +53,9 @@ def prepare_data(args):
     print('\tTotal words:', args.n_word)
 
     embeds = get_embedding(args, word2idx)
-    
-    # Falls get_embedding None zurückgibt (weil z.B. GloVe nicht gefunden wurde 
-    # oder das Flag fehlte), erstellen wir zufällige Embeddings:
-    if embeds is None:
-        print("\t⚠️ Keine vortrainierten Embeddings gefunden/gewählt. Erstelle zufällige Initialisierung...")
-        embeds = np.random.normal(size=(args.n_word, args.d_model))
 
     tr_data, tr_gt = read_corpus(args.path_data + args.dataset + '/train-stemmed.txt', label2idx, word2idx)
     print('\n\tTotal training samples:', len(tr_data))
-
-    # --- START PUBLIC EDGE INTEGRATION ---
-    print('\tBerechne valide Kanten (Public Edge Strategie)...')
-    valid_edge_ids = compute_valid_edge_ids(tr_data, args.n_degree, args.n_word, k=2)
-    # --- ENDE PUBLIC EDGE INTEGRATION ---
 
     # --- START PUBLIC EDGE INTEGRATION ---
     print('\tBerechne valide Kanten (Public Edge Strategie)...')
@@ -88,7 +80,6 @@ def prepare_data(args):
         'te_gt': te_gt,
         'embeds': embeds,
         'valid_edge_ids': valid_edge_ids,  # <--- HIER ergänzt
-        'valid_edge_ids': valid_edge_ids,  # <--- HIER ergänzt
         'args': args
     }
 
@@ -103,11 +94,6 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description='Training eines TextLevelGNN Modells zur Textklassifikation')
 
     # Experiment setting
-    # MLOps Pipeline Schalter
-    parser.add_argument('--do_preprocess', action='store_true', help='Baut die .pkl Datei neu')
-    parser.add_argument('--do_train', action='store_true', help='Führt das Training aus')
-    parser.add_argument('--do_test', action='store_true', help='Testet ein fertiges Modell')
-    parser.add_argument('--load_model_path', type=str, default='', help='Pfad zur .pt Datei für den Test')
     # --dataset: Command Line Interface Argument
     parser.add_argument('--dataset', type=str, default='ohsumed', choices=['mr', 'ohsumed', 'r8', 'r52', 'bbc_converted'],
                         help='Name des Datensatzes')
@@ -118,14 +104,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument('--layer_norm', action='store_true', help='Ablation: Layer Normalization verwenden')
     parser.add_argument('--relu', action='store_false', help='Ablation: ReLU Aktivierung vor Softmax verwenden')
     parser.add_argument('--n_degree', type=int, default=3, help='Radius der Nachbarschaft im Graph')
-    parser.add_argument('--pretrained', action='store_false', help='Ablation: Keine vortrainierte GloVe Embeddings verwenden')
-    parser.add_argument('--layer_norm', action='store_true', help='Ablation: Layer Normalization verwenden')
-    parser.add_argument('--relu', action='store_false', help='Ablation: ReLU Aktivierung vor Softmax verwenden')
-    parser.add_argument('--n_degree', type=int, default=3, help='Radius der Nachbarschaft im Graph')
 
     # Hyperparameter
     parser.add_argument('--d_model', type=int, default=300, help='Dimension der Wortrepräsentation')
-    parser.add_argument('--d_pretrained', type=int, default=300, help='Dimension der vortrainierten Embeddings')
     parser.add_argument('--d_pretrained', type=int, default=300, help='Dimension der vortrainierten Embeddings')
     parser.add_argument('--max_len_text', type=int, default=100,
                         help='Maximale Länge eines Textes, default 100, 150 für ohsumed')
@@ -134,14 +115,11 @@ def parse_args() -> argparse.Namespace:
     # Trainingsparameter
     parser.add_argument('--num_worker', type=int, default=5, help='Anzahl Worker für DataLoader')
     parser.add_argument('--batch_size', type=int, default=32, metavar='N', help='Batch Größe')
-    parser.add_argument('--batch_size', type=int, default=32, metavar='N', help='Batch Größe')
     parser.add_argument('--epochs', type=int, default=100, help='Maximale Anzahl Trainingsepochen')
-    parser.add_argument('--dropout', type=float, default=0.5, help='Dropout Rate (0 = no dropout)')
     parser.add_argument('--dropout', type=float, default=0.5, help='Dropout Rate (0 = no dropout)')
     parser.add_argument('--lr', type=float, default=1e-3, help='Initialisierte Lernrate')
     parser.add_argument('--lr_step', type=int, default=5, help='Nach wie vielen Epochen die Lernrate reduziert wird')
     parser.add_argument('--lr_gamma', type=float, default=0.1, help='Faktor der Lernratenreduktion')
-    parser.add_argument('--es_patience_max', type=int, default=10, help='Geduld (patience) für Early Stopping')
     parser.add_argument('--es_patience_max', type=int, default=10, help='Geduld (patience) für Early Stopping')
     parser.add_argument('--loss_eps', type=float, default=1e-4, help='Minimale Verbesserung des Loss')
     parser.add_argument('--seed', type=int, default=1111, help='Zufallsseed')
@@ -149,10 +127,8 @@ def parse_args() -> argparse.Namespace:
     # Pfade
     parser.add_argument('--path_data', type=str, default='./data/', help='Pfad zum Datensatz')
     parser.add_argument('--path_embedding', type=str, default='./data/glove/', help='Pfad zur GloVe-.txt-Datei oder zu einem Verzeichnis mit Embeddings')
-    parser.add_argument('--path_embedding', type=str, default='./data/glove/', help='Pfad zur GloVe-.txt-Datei oder zu einem Verzeichnis mit Embeddings')
     parser.add_argument('--path_log', type=str, default='./result/logs/', help='Pfad zu training logs')
     parser.add_argument('--path_model', type=str, default='./result/models/', help='Pfad für trainierte Modelle')
-    parser.add_argument('--save_model', type=bool, default=True, help='Modelle speichern für weitere Verwendung')
     parser.add_argument('--save_model', type=bool, default=True, help='Modelle speichern für weitere Verwendung')
 
     args = parser.parse_args()
@@ -239,34 +215,25 @@ def build_training(args):
     model = TextLevelGNN(args, embeds_pretrained).to(args.device) # verschiebt das Modell auf device
     # Der Optimizer aktualisiert die Modellgewichte während des Trainings.
     optimizer = torch.optim.Adam(
+        # nur Parameter trainieren, bei denen requires_grad = True
         filter(lambda p: p.requires_grad, model.parameters()),
-        lr=args.lr,
-        weight_decay=1e-4
+        lr=args.lr,  # learning rate: teuert wie stark Gewichte angepasst werden
+        weight_decay=1e-4   # Hilft gegen Overfitting
     )
+    # Verändert die Learning Rate während des Trainings
     scheduler = torch.optim.lr_scheduler.StepLR(
-        optimizer,
-        step_size=args.lr_step,
-        gamma=args.lr_gamma
+        optimizer,  # Der Scheduler steuert die Learning Rate des Optimizers
+        step_size=args.lr_step,  # Alle N Epochen wird die Learning Rate veränder
+        gamma=args.lr_gamma  # Faktor zur Reduktion
     )
 
     return model, optimizer, scheduler, train_loader, valid_loader, test_loader
+
 
 # Training
 def train_model(args):
 
     model, optimizer, scheduler, train_loader, valid_loader, test_loader = build_training(args)
-
-    logging.info("[Run-Konfiguration]")
-    logging.info(f" Dataset: {args.dataset}")
-    logging.info(f" Logfile: {args.path_log}")
-    logging.info(f" Pretrained: {args.pretrained}")
-    logging.info(f" Embedding-Pfad: {args.path_embedding if args.path_embedding else '-'}")
-    logging.info(f" d_model: {args.d_model} | d_pretrained: {args.d_pretrained}")
-    logging.info(f" batch_size: {args.batch_size} | epochs: {args.epochs} | lr: {args.lr}")
-    logging.info(f" lr_step: {args.lr_step} | lr_gamma: {args.lr_gamma}")
-    logging.info(f" es_patience_max: {args.es_patience_max} | loss_eps: {args.loss_eps}")
-    logging.info(f" dropout: {args.dropout} | n_degree: {args.n_degree} | max_len_text: {args.max_len_text}")
-    logging.info(f" mean_reduction: {args.mean_reduction} | layer_norm: {args.layer_norm} | relu: {args.relu}")
 
     logging.info("[Run-Konfiguration]")
     logging.info(f" Dataset: {args.dataset}")
@@ -341,6 +308,7 @@ def train_model(args):
             )
             break  # for-Schleife beenden
 
+
     # Testphase
     logging.info("\n[Testphase]")
     # Lädt die gespeicherten Parameter zurück ins Modell
@@ -359,21 +327,6 @@ def train_model(args):
         torch.save(model, args.path_model)
         logging.info("Modell gespeichert")
 
-def test_model(args):
-    """Lädt ein trainiertes Modell und testet es isoliert."""
-    if not args.load_model_path:
-        raise ValueError("Für --do_test musst du auch --load_model_path angeben!")
-
-    # Nur Test-Dataloader wird wirklich benötigt
-    _, _, test_loader, _, embeds_pretrained = build_dataloaders(args)
-    
-    model = TextLevelGNN(args, embeds_pretrained).to(args.device)
-    
-    print(f"\n[Lade Modellgewichte von: {args.load_model_path}]")
-    model.load_state_dict(torch.load(args.load_model_path, map_location=args.device, weights_only=True))
-    
-    loss_test, acc_test = evaluate(args, model, test_loader)
-    print(f"\n🎉 Test-Ergebnis | Loss: {loss_test:.4f} | Accuracy: {acc_test:.4f}")
 
 if __name__ == "__main__":
     main()

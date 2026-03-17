@@ -1,9 +1,7 @@
 import pickle
 import numpy as np
 import torch
-from src.graph_builder import build_graph_with_public_edges
 from torch.utils.data import Dataset, DataLoader
-from src.graph_builder import build_graph_with_public_edges
 from src.graph_builder import build_graph_with_public_edges
 
 class TextGraphDataset(Dataset):
@@ -20,7 +18,6 @@ class TextGraphDataset(Dataset):
         self.window_size = config.n_degree
         self.max_seq_len = config.max_len_text
         self.valid_edge_ids = valid_edge_ids  # <--- HIER ergänzt
-        self.valid_edge_ids = valid_edge_ids  # <--- HIER ergänzt
 
     def __len__(self):
         return self.num_samples
@@ -28,72 +25,8 @@ class TextGraphDataset(Dataset):
     def __getitem__(self, index):
         """
         Extrahiert einen Datenpunkt und konstruiert den Text-Graphen via graph_builder.
-        Extrahiert einen Datenpunkt und konstruiert den Text-Graphen via graph_builder.
         """
         tokens = self.texts[index]
-        
-        # --- START PUBLIC EDGE INTEGRATION ---
-        x, nb_x, w_edge = build_graph_with_public_edges(
-            text_tokens=tokens,
-            n_degree=self.window_size,
-            max_len_text=self.max_seq_len,
-            n_word=self.vocab_size,
-            valid_edge_ids=self.valid_edge_ids
-        )
-        # --- ENDE PUBLIC EDGE INTEGRATION ---
-
-        return x, nb_x, w_edge, self.labels[index]
-
-# [ ... prepare_batch bleibt unangetastet ... ]
-
-def build_dataloaders(args):
-    """ 
-    Lädt die gepickelten Preprocessing-Daten und initialisiert die Dataloader.
-    """
-    with open(args.path_data, 'rb') as file:
-        data_dict = pickle.load(file)
-
-    vocab_dict = data_dict['word2idx']
-    args_prep = data_dict['args']
-
-    # Dimensionen abgleichen
-    if args_prep.d_pretrained != args.d_model:
-        raise ValueError("Mismatch zwischen Preprocessing Embedding-Dimension und Modell-Dimension.")
-        
-    args.n_class = args_prep.n_class
-    args.n_word = len(vocab_dict) 
-    
-    # <--- HIER extrahieren wir die berechneten Kanten-IDs
-    valid_edge_ids = data_dict['valid_edge_ids']
-
-    # Dataloader Instanzen erstellen (valid_edge_ids übergeben!)
-    loader_train = DataLoader(
-        TextGraphDataset(args, data_dict['tr_data'], data_dict['tr_gt'], valid_edge_ids), 
-        batch_size=args.batch_size,
-        num_workers=args.num_worker, 
-        collate_fn=prepare_batch, 
-        shuffle=True
-    )
-
-    loader_val = DataLoader(
-        TextGraphDataset(args, data_dict['val_data'], data_dict['val_gt'], valid_edge_ids), 
-        batch_size=args.batch_size,
-        num_workers=args.num_worker, 
-        collate_fn=prepare_batch, 
-        shuffle=False 
-    )
-
-    loader_test = DataLoader(
-        TextGraphDataset(args, data_dict['te_data'], data_dict['te_gt'], valid_edge_ids), 
-        batch_size=args.batch_size,
-        num_workers=args.num_worker, 
-        collate_fn=prepare_batch, 
-        shuffle=False
-    )
-
-    embeddings_tensor = torch.tensor(data_dict['embeds'], dtype=torch.float32)
-
-    return loader_train, loader_val, loader_test, vocab_dict, embeddings_tensor
         
         # --- START PUBLIC EDGE INTEGRATION ---
         x, nb_x, w_edge = build_graph_with_public_edges(
@@ -183,9 +116,6 @@ def build_dataloaders(args):
 
     vocab_dict = data_dict['word2idx']
     args_prep = data_dict['args']
-    
-    # NEU: Wir holen uns die validen Kanten aus dem gepickelten Dictionary
-    valid_edges = data_dict['valid_edge_ids'] 
 
     embeddings_tensor = None
     if data_dict['embeds'] is not None:
@@ -202,20 +132,17 @@ def build_dataloaders(args):
     args.n_class = args_prep.n_class
     args.n_word = len(vocab_dict) 
 
-    # Dataloader Instanzen erstellen (JETZT MIT valid_edges als 4. Parameter!)
+    # Dataloader Instanzen erstellen
     loader_train = DataLoader(
-        TextGraphDataset(args, data_dict['tr_data'], data_dict['tr_gt'], data_dict['valid_edge_ids']), 
         TextGraphDataset(args, data_dict['tr_data'], data_dict['tr_gt'], data_dict['valid_edge_ids']), 
         batch_size=args.batch_size,
         num_workers=args.num_worker, 
         collate_fn=prepare_batch, 
         shuffle=True
 
-
     )
 
     loader_val = DataLoader(
-        TextGraphDataset(args, data_dict['val_data'], data_dict['val_gt'], data_dict['valid_edge_ids']), 
         TextGraphDataset(args, data_dict['val_data'], data_dict['val_gt'], data_dict['valid_edge_ids']), 
         batch_size=args.batch_size,
         num_workers=args.num_worker, 
@@ -224,7 +151,6 @@ def build_dataloaders(args):
     )
 
     loader_test = DataLoader(
-        TextGraphDataset(args, data_dict['te_data'], data_dict['te_gt'], data_dict['valid_edge_ids']), 
         TextGraphDataset(args, data_dict['te_data'], data_dict['te_gt'], data_dict['valid_edge_ids']), 
         batch_size=args.batch_size,
         num_workers=args.num_worker, 

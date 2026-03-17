@@ -126,7 +126,7 @@ def parse_args() -> argparse.Namespace:
 
     # Pfade
     parser.add_argument('--path_data', type=str, default='./data/', help='Pfad zum Datensatz')
-    parser.add_argument('--path_embedding', type=str, default='./data/glove/', help='Pfad zur GloVe-.txt-Datei')
+    parser.add_argument('--path_embedding', type=str, default='./data/glove/', help='Pfad zur GloVe-.txt-Datei oder zu einem Verzeichnis mit Embeddings')
     parser.add_argument('--path_log', type=str, default='./result/logs/', help='Pfad zu training logs')
     parser.add_argument('--path_model', type=str, default='./result/models/', help='Pfad für trainierte Modelle')
     parser.add_argument('--save_model', type=bool, default=True, help='Modelle speichern für weitere Verwendung')

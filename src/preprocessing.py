@@ -88,6 +88,26 @@ def get_embedding(args: Any, word2idx: Dict[str, int]) -> np.ndarray | None:
         # Fallback auf das bisherige Standardschema im data-Ordner
         file_path = Path(args.path_data) / f"glove.6B.{args.d_pretrained}d.txt"
 
+    if file_path.is_dir():
+        txt_candidates = sorted(file_path.glob("*.txt"))
+        if not txt_candidates:
+            raise FileNotFoundError(
+                f"Keine Embedding-Datei im Verzeichnis gefunden: {file_path}. "
+                "Setze --path_embedding auf eine .txt-Datei oder ein Verzeichnis mit genau einer .txt-Datei."
+            )
+        if len(txt_candidates) == 1:
+            file_path = txt_candidates[0]
+        else:
+            matching_dim = [p for p in txt_candidates if str(args.d_pretrained) in p.stem]
+            if len(matching_dim) == 1:
+                file_path = matching_dim[0]
+            else:
+                candidates = ", ".join(str(p.name) for p in txt_candidates[:5])
+                raise ValueError(
+                    f"Mehrere Embedding-Dateien gefunden in {file_path}: {candidates}. "
+                    "Setze --path_embedding auf die gewuenschte .txt-Datei."
+                )
+
     if not file_path.exists():
         raise FileNotFoundError(
             f"Embedding-Datei nicht gefunden: {file_path}. "

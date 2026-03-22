@@ -6,47 +6,47 @@ from typing import Dict, List, Tuple, Any
 def read_labels(file_path: str | Path) -> Dict[str, int]:
     """
     Liest eine Datei mit Labels (ein Label pro Zeile) und weist jedem Label eine ID zu.
+    Verhindert Fehler durch versehentliche Duplikate in der Datei.
     """
     with open(file_path, "r", encoding="utf-8") as f:
-        # line.strip() löscht führende und nachfolgende Leerzeichen, sowie Zeilenumbrüche und gibt zurück,
-        # ob die Zeile danach leer ist oder nicht.
-        # line.strip() = false => Zeile enthält nur Leerzeichen, wird ignoriert
-        # splitlines()
+        # Alle Zeilen einlesen und leere Zeilen ignorieren
         labels = [line.strip() for line in f.read().splitlines() if line.strip()]
-        # Erstellt ein Dictionary: {'LabelA': 0, 'LabelB': 1, ...}
-        label2idx = {
-            # Format des Dictionarys: {Label label: ID i}
-            label: i
-            # i und label werden Elementen aus der labels zugewiesen
-            for i, label
-            # enumerate() gibt für jedes Element in labels ein Tupel (Index, Element) zurück
-            in enumerate(labels)
-        }
+        
+    # Leeres Dictionary starten
+    label2idx = {}
+    
+    # Jedes Label sicher zuweisen (Start bei ID 0)
+    for label in labels:
+        if label not in label2idx:  # <-- Der Schutzschild für Labels!
+            label2idx[label] = len(label2idx)
+            
     return label2idx
-
 
 def read_vocab(file_path: str | Path) -> Dict[str, int]:
     """
     Liest eine Datei mit Vokabeln (eine Vokabel pro Zeile) und weist jedem Wort eine ID zu.
     """
-    # speichert return von open(...) in f
     with open(file_path, "r", encoding="utf-8") as f:
+        # Alle Zeilen einlesen und leere Zeilen ignorieren
         words = [line.strip() for line in f.read().splitlines() if line.strip()]
-        # Ertellt Dictionary ab Index 1
-        word2idx = {word: i + 1 for i, word in enumerate(words)}
-        # das wort <pad> (=Platzhalter) wird in index 0 gespeichert
-        #'<pad> ist Konvention, da 'platzhalter' oder 'pad' (z.B. 'iPad') in Texten vorkommen könnten
-        word2idx["<pad>"] = 0
-        # Falls Unk nicht in Vokabular enhalten gewesen, hier manuell hinzugefügt.
-        # Wenn Worte, später nicht im Dict gefunden werden, werden sie als UNK gehandhabt
-        if "UNK" not in word2idx:
-            word2idx["UNK"] = len(word2idx)
+        
+    # Wir starten direkt mit unserem Padding auf ID 0
+    word2idx = {"<pad>": 0}
+    
+    # Jetzt gehen wir alle eingelesenen Wörter durch
+    for word in words:
+        if word not in word2idx: # <-- Hier ist der Schutzschild gegen Duplikate!
+            # len(word2idx) gibt uns immer exakt die nächste, lückenlose Zahl
+            word2idx[word] = len(word2idx)
+            
+    # Falls UNK nicht im Vokabular enthalten war, hängen wir es ganz ans Ende an
+    if "UNK" not in word2idx:
+        word2idx["UNK"] = len(word2idx)
+        
     return word2idx
 
 
-def read_corpus(
-    file_path: str | Path, label2idx: Dict[str, int], word2idx: Dict[str, int]
-) -> Tuple[List[List[int]], List[int]]:
+def read_corpus(file_path: str | Path, label2idx: Dict[str, int], word2idx: Dict[str, int]) -> Tuple[List[List[int]], List[int]]:
     """
     Liest den Textkorpus ein und codiert sowohl die Wörter als auch die Labels.
     Erwartet eine tabulatorgetrennte Datei (Label \t Text).
@@ -79,7 +79,7 @@ def get_embedding(args: Any, word2idx: Dict[str, int]) -> np.ndarray | None:
     """Finde Wörter in den Glove-Embeddings"""
     # suche in Liste 'args' das Argumnet pretrained und wenn dieses false ist ist...
     if not args.pretrained:
-        print("\t GLoVe Word-Embeddings gefunden, aber werden nicht verwendet!")
+        print("\t GLoVe Word-Embeddings werden nicht verwendet!")
         return None
 
     if getattr(args, "path_embedding", None):

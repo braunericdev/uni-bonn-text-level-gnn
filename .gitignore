@@ -7,10 +7,16 @@ __pycache__/
 .pytest_cache/
 
 # Eure rohen und verarbeiteten GNN-Daten (gehören nicht auf GitLab!)
-result/
+result/models/
 ag_news_converted/
 # Jupyter Notebook Checkpoints
 .ipynb_checkpoints/
 
 # VS Code Einstellungen
 .vscode/
+
+glove/
+
+data/
+
+result/

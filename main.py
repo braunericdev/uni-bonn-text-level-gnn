@@ -3,12 +3,11 @@ import logging
 import time
 import copy
 import pickle
-from pathlib import Path
-
 import numpy as np
 import torch
+from pathlib import Path
 
-from src.preprocessing import read_labels, read_vocab, get_embedding, read_corpus, encode_word
+from src.preprocessing import read_labels, read_vocab, get_embedding, read_corpus
 from src.dataset import build_dataloaders
 from src.model import TextLevelGNN
 from src.train import train, evaluate
@@ -36,9 +35,71 @@ def main():
     args.device = resolve_device(args.device)
     train_model(args)
 
+
+def parse_args() -> argparse.Namespace:
+    # argparse: ermöglicht, Parameter wie --epochs 100 über die Konsole zu übergeben
+    parser = argparse.ArgumentParser(description='Training eines TextLevelGNN Modells zur Textklassifikation')
+
+    # Experiment setting
+    # --dataset: Command Line Interface Argument
+    parser.add_argument('--dataset', type=str, default='ohsumed', choices=['mr', 'ohsumed', 'ohsumed_tiny', 'r8', 'r8_tiny', "bbc_converted_master",
+                                                                           'r52', 'r52_tiny', 'bbc_converted', 'bbc_converted_tiny', 
+                                                                           'bbc_converted_tiny_master', "r8_tiny_master", "r52_tiny_master"],
+                        help='Name des Datensatzes')
+    # --mean_reduction nicht angegeben, dann ist der Wert False
+    # --mean_reduction angegeben, dann ist der Wert True
+    parser.add_argument('--mean_reduction', action='store_true', help='Ablation: Mean statt Max Aggregation verwenden')
+    parser.add_argument('--pretrained', action='store_false', help='Ablation: Keine vortrainierte GloVe Embeddings verwenden')
+    parser.add_argument('--layer_norm', action='store_true', help='Ablation: Layer Normalization verwenden')
+    parser.add_argument('--relu', action='store_false', help='Ablation: ReLU Aktivierung vor Softmax verwenden')
+    parser.add_argument('--n_degree', type=int, default=3, help='Radius der Nachbarschaft im Graph')
+
+    # Hyperparameter
+    parser.add_argument('--d_model', type=int, default=300, help='Dimension der Wortrepräsentation')
+    parser.add_argument('--d_pretrained', type=int, default=300, help='Dimension der vortrainierten Embeddings')
+    parser.add_argument('--max_len_text', type=int, default=100,
+                        help='Maximale Länge eines Textes, default 100, 150 für ohsumed')
+    parser.add_argument('--device', type=str, default='cuda:0', help='Gerät für Berechnung (cpu oder cuda:0)')
+
+    # Trainingsparameter
+    parser.add_argument('--transfer_model', type=str, default='', help='Pfad zur .pt Datei für Transferlernen (lädt trainierte Gewichte)')
+    parser.add_argument('--num_worker', type=int, default=5, help='Anzahl Worker für DataLoader')
+    parser.add_argument('--batch_size', type=int, default=32, metavar='N', help='Batch Größe')
+    parser.add_argument('--epochs', type=int, default=100, help='Maximale Anzahl Trainingsepochen')
+    parser.add_argument('--dropout', type=float, default=0.5, help='Dropout Rate (0 = no dropout)')
+    parser.add_argument('--lr', type=float, default=1e-3, help='Initialisierte Lernrate')
+    parser.add_argument('--lr_step', type=int, default=5, help='Nach wie vielen Epochen die Lernrate reduziert wird')
+    parser.add_argument('--lr_gamma', type=float, default=0.1, help='Faktor der Lernratenreduktion')
+    parser.add_argument('--es_patience_max', type=int, default=10, help='Geduld (patience) für Early Stopping')
+    parser.add_argument('--loss_eps', type=float, default=1e-4, help='Minimale Verbesserung des Loss')
+    parser.add_argument('--seed', type=int, default=1111, help='Zufallsseed')
+
+    # Pfade
+    parser.add_argument('--path_data', type=str, default='./data/', help='Pfad zum Datensatz')
+    parser.add_argument('--path_embedding', type=str, default='./data/glove/', help='Pfad zur GloVe-.txt-Datei oder zu einem Verzeichnis mit Embeddings')
+    parser.add_argument('--path_log', type=str, default='./result/logs/', help='Pfad zu training logs')
+    parser.add_argument('--path_model', type=str, default='./result/models/', help='Pfad für trainierte Modelle')
+    parser.add_argument('--save_model', type=bool, default=True, help='Modelle speichern für weitere Verwendung')
+
+    args = parser.parse_args()
+    return args
+
+# Seeds setzen für Reproduzierbarkeit
+def set_seed(seed):
+    # Setzt den Seed für NumPy
+    np.random.seed(seed)
+    # Setzt den Seed für PyTorch auf der CPU
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        # Setzt den Seed für alle CUDA-GPUs
+        torch.cuda.manual_seed_all(seed)
+
+
 def prepare_data(args):
 
-    if args.dataset not in ['r8', 'r52', 'ohsumed', "bbc_converted"]:
+    if args.dataset not in ['r8', 'r52', 'ohsumed', "bbc_converted", "bbc_converted_tiny, ohsumed_tiny", 
+                            "r8_tiny", "r52_tiny", "bbc_converted_tiny_master", "r8_tiny_master", 
+                            "r52_tiny_master", "bbc_converted_master"]:
         raise ValueError('Data {data} not supported, currently supports "r8", "r52", "ohsumed" and "bbc".')
 
     # read files
@@ -59,7 +120,7 @@ def prepare_data(args):
 
     # --- START PUBLIC EDGE INTEGRATION ---
     print('\tBerechne valide Kanten (Public Edge Strategie)...')
-    valid_edge_ids = compute_valid_edge_ids(tr_data, args.n_degree, args.n_word, k=2)
+    valid_edge_ids = compute_valid_edge_ids(tr_data, args.n_degree, args.n_word, k=0)
     # --- ENDE PUBLIC EDGE INTEGRATION ---
 
     val_data, val_gt = read_corpus(args.path_data + args.dataset + '/valid-stemmed.txt', label2idx, word2idx)
@@ -87,92 +148,6 @@ def prepare_data(args):
         pickle.dump(mappings, f)
 
     print('\n[info] Time consumed: {:.2f}s'.format(time.time() - time_start))
-
-
-def parse_args() -> argparse.Namespace:
-    # argparse: ermöglicht, Parameter wie --epochs 100 über die Konsole zu übergeben
-    parser = argparse.ArgumentParser(description='Training eines TextLevelGNN Modells zur Textklassifikation')
-
-    # Experiment setting
-    # --dataset: Command Line Interface Argument
-    parser.add_argument('--dataset', type=str, default='ohsumed', choices=['mr', 'ohsumed', 'r8', 'r52', 'bbc_converted'],
-                        help='Name des Datensatzes')
-    # --mean_reduction nicht angegeben, dann ist der Wert False
-    # --mean_reduction angegeben, dann ist der Wert True
-    parser.add_argument('--mean_reduction', action='store_true', help='Ablation: Mean statt Max Aggregation verwenden')
-    parser.add_argument('--pretrained', action='store_false', help='Ablation: Keine vortrainierte GloVe Embeddings verwenden')
-    parser.add_argument('--layer_norm', action='store_true', help='Ablation: Layer Normalization verwenden')
-    parser.add_argument('--relu', action='store_false', help='Ablation: ReLU Aktivierung vor Softmax verwenden')
-    parser.add_argument('--n_degree', type=int, default=3, help='Radius der Nachbarschaft im Graph')
-
-    # Hyperparameter
-    parser.add_argument('--d_model', type=int, default=300, help='Dimension der Wortrepräsentation')
-    parser.add_argument('--d_pretrained', type=int, default=300, help='Dimension der vortrainierten Embeddings')
-    parser.add_argument('--max_len_text', type=int, default=100,
-                        help='Maximale Länge eines Textes, default 100, 150 für ohsumed')
-    parser.add_argument('--device', type=str, default='cuda:0', help='Gerät für Berechnung (cpu oder cuda:0)')
-
-    # Trainingsparameter
-    parser.add_argument('--num_worker', type=int, default=5, help='Anzahl Worker für DataLoader')
-    parser.add_argument('--batch_size', type=int, default=32, metavar='N', help='Batch Größe')
-    parser.add_argument('--epochs', type=int, default=100, help='Maximale Anzahl Trainingsepochen')
-    parser.add_argument('--dropout', type=float, default=0.5, help='Dropout Rate (0 = no dropout)')
-    parser.add_argument('--lr', type=float, default=1e-3, help='Initialisierte Lernrate')
-    parser.add_argument('--lr_step', type=int, default=5, help='Nach wie vielen Epochen die Lernrate reduziert wird')
-    parser.add_argument('--lr_gamma', type=float, default=0.1, help='Faktor der Lernratenreduktion')
-    parser.add_argument('--es_patience_max', type=int, default=10, help='Geduld (patience) für Early Stopping')
-    parser.add_argument('--loss_eps', type=float, default=1e-4, help='Minimale Verbesserung des Loss')
-    parser.add_argument('--seed', type=int, default=1111, help='Zufallsseed')
-
-    # Pfade
-    parser.add_argument('--path_data', type=str, default='./data/', help='Pfad zum Datensatz')
-    parser.add_argument('--path_embedding', type=str, default='./data/glove/', help='Pfad zur GloVe-.txt-Datei oder zu einem Verzeichnis mit Embeddings')
-    parser.add_argument('--path_log', type=str, default='./result/logs/', help='Pfad zu training logs')
-    parser.add_argument('--path_model', type=str, default='./result/models/', help='Pfad für trainierte Modelle')
-    parser.add_argument('--save_model', type=bool, default=True, help='Modelle speichern für weitere Verwendung')
-
-    args = parser.parse_args()
-    return args
-
-
-
-# Logging konfigurieren
-def setup_logging(log_path):
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
-    logger.handlers.clear()
-
-    formatter = logging.Formatter("%(message)s")
-
-    console_handler = logging.StreamHandler()
-    console_handler.setFormatter(formatter)
-
-    file_handler = logging.FileHandler(log_path, encoding="utf-8")
-    file_handler.setFormatter(formatter)
-
-    logger.addHandler(console_handler)
-    logger.addHandler(file_handler)
-
-
-# Seeds setzen für Reproduzierbarkeit
-def set_seed(seed):
-    # Setzt den Seed für NumPy
-    np.random.seed(seed)
-    # Setzt den Seed für PyTorch auf der CPU
-    torch.manual_seed(seed)
-    if torch.cuda.is_available():
-        # Setzt den Seed für alle CUDA-GPUs
-        torch.cuda.manual_seed_all(seed)
-
-
-# Device bestimmen
-def resolve_device(device_str):
-    # Ob der gewünschte Device-String mit "cuda" beginnt
-    if device_str.startswith("cuda") and not torch.cuda.is_available():
-        logging.warning("CUDA nicht verfügbar, verwende CPU")
-        return torch.device("cpu")
-    return torch.device(device_str)
-
 
 # Pfade vorbereiten
 def prepare_paths(args):
@@ -207,12 +182,45 @@ def prepare_paths(args):
     args.path_model = str(model_dir / f"model{timestamp}.pt")
     args.path_model_params = str(model_dir / f"model_params{timestamp}.pt")
 
+# Logging konfigurieren
+def setup_logging(log_path):
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    logger.handlers.clear()
+
+    formatter = logging.Formatter("%(message)s")
+
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(formatter)
+
+    file_handler = logging.FileHandler(log_path, encoding="utf-8")
+    file_handler.setFormatter(formatter)
+
+    logger.addHandler(console_handler)
+    logger.addHandler(file_handler)
+
+# Device bestimmen
+def resolve_device(device_str):
+    # Ob der gewünschte Device-String mit "cuda" beginnt
+    if device_str.startswith("cuda") and not torch.cuda.is_available():
+        logging.warning("CUDA nicht verfügbar, verwende CPU")
+        return torch.device("cpu")
+    return torch.device(device_str)
 
 # Modell und Optimizer erstellen
 def build_training(args):
     # Datensätze und Embeddings laden mit multiple assignment
     train_loader, valid_loader, test_loader, word2idx, embeds_pretrained = build_dataloaders(args)
     model = TextLevelGNN(args, embeds_pretrained).to(args.device) # verschiebt das Modell auf device
+    # 2. TRANSFERLERNEN: Das trainierte "Gehirn" laden
+    if args.transfer_model:  # Wenn ein Pfad übergeben wurde...
+        print(f"Lade vortrainierte Gewichte aus: {args.transfer_model}")
+        # a) Lade die Zahlenkolonnen von der Festplatte
+        state_dict = torch.load(args.transfer_model, map_location=args.device, weights_only=False)
+        # b) Pflanze sie in das leere GNN-Skelett ein
+        model.load_state_dict(state_dict)
+    
+    print("Transferlernen bereit! Starte Fine-Tuning...")
     # Der Optimizer aktualisiert die Modellgewichte während des Trainings.
     optimizer = torch.optim.Adam(
         # nur Parameter trainieren, bei denen requires_grad = True

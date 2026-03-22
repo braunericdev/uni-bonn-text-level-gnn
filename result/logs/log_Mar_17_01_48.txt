@@ -1,4 +1,0 @@
-
-[Training gestartet]
-
-[Epoch 1]
